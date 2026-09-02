@@ -273,7 +273,6 @@ a {
   border: 1px solid var(--bg-card-border);
   border-radius: 8px;
   padding: 0.7rem 0.9rem;
-  touch-action: none;
 }
 
 .vl-card.is-dragging {
