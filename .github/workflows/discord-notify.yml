@@ -31,10 +31,18 @@ jobs:
 
             const branch = context.ref.replace("refs/heads/", "");
 
-            const fields = commits.map(c => ({
-              name: context.actor,
-              value: `[${c.message}](${c.url})`
-            }));
+            const fields = commits.map(c => {
+              // Discord embed field values cap at 1024 chars, and a full
+              // commit body (subject + bullet list) can exceed that and
+              // get the whole payload rejected with a 400 — show just the
+              // subject line, truncated as a safety net for a long one.
+              let subject = c.message.split("\n")[0];
+              if (subject.length > 200) subject = subject.slice(0, 197) + "...";
+              return {
+                name: context.actor,
+                value: `[${subject}](${c.url})`
+              };
+            });
 
             const payload = {
               embeds: [
