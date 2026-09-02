@@ -4,6 +4,7 @@
 // in As Entered mode, and keeps the current list/order shareable via the URL
 // hash (#refs=...) and restorable via localStorage.
 import { parseReferenceList, sortByBibleOrder, serializeEntries } from "./verse-list.js";
+import { isProfane } from "./profanity-filter.js";
 
 const STORAGE_KEY = "vlLastList";
 
@@ -13,6 +14,7 @@ const els = {
   loadBtn: document.getElementById("vl-load-btn"),
   errors: document.getElementById("vl-errors"),
   listSection: document.getElementById("vl-list-section"),
+  listTitle: document.getElementById("vl-list-title"),
   orderEnteredBtn: document.getElementById("vl-order-entered"),
   orderBibleBtn: document.getElementById("vl-order-bible"),
   copyLinkBtn: document.getElementById("vl-copy-link-btn"),
@@ -22,11 +24,24 @@ const els = {
   empty: document.getElementById("vl-empty"),
 };
 
+const DEFAULT_DOCUMENT_TITLE = document.title;
+
 // enteredOrder: array of entries in the user's custom/pasted order (the
 // order drag-to-reorder edits). orderMode: "entered" | "bible" — a view
-// toggle, never destroys enteredOrder.
+// toggle, never destroys enteredOrder. currentTitle: the list's name.
+// Deliberately settable only via an incoming link's title= param (or
+// localStorage carrying one forward) — never by typing into the paste box
+// — so VerseList's own UI doesn't invite free-text title entry. A title
+// arrives here from a sibling app (e.g. Bible Peruser's planned "copy
+// list" button) generating a link, not from this page.
 let enteredOrder = [];
 let orderMode = "entered";
+let currentTitle = null;
+// Set by the Edit List button so the very next submit carries the current
+// title through unchanged (editing an already-titled list shouldn't lose
+// its name). Any other submit clears the title — pasting a fresh,
+// unrelated list shouldn't keep showing an old one's name.
+let pendingExplicitTitle;
 
 function showErrors(errors) {
   els.errors.innerHTML = "";
@@ -91,6 +106,17 @@ function renderCards() {
   els.dragHint.hidden = orderMode !== "entered" || entries.length < 2;
 }
 
+function renderTitle() {
+  if (currentTitle) {
+    els.listTitle.textContent = currentTitle;
+    els.listTitle.hidden = false;
+    document.title = `${currentTitle} — VerseList`;
+  } else {
+    els.listTitle.hidden = true;
+    document.title = DEFAULT_DOCUMENT_TITLE;
+  }
+}
+
 function updateOrderButtons() {
   els.orderEnteredBtn.classList.toggle("is-active", orderMode === "entered");
   els.orderBibleBtn.classList.toggle("is-active", orderMode === "bible");
@@ -100,7 +126,7 @@ function persist() {
   try {
     localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ refs: enteredOrder.map((e) => e.raw), orderMode }),
+      JSON.stringify({ refs: enteredOrder.map((e) => e.raw), orderMode, title: currentTitle }),
     );
   } catch (_) {
     /* storage unavailable — sharing/reload restore just won't persist */
@@ -109,14 +135,26 @@ function persist() {
 }
 
 function syncHash() {
-  const text = serializeEntries(enteredOrder);
-  const hash = `#refs=${encodeURIComponent(text)}${orderMode === "bible" ? "&order=bible" : ""}`;
-  history.replaceState(null, "", hash);
+  const params = new URLSearchParams();
+  params.set("refs", serializeEntries(enteredOrder));
+  if (orderMode === "bible") params.set("order", "bible");
+  if (currentTitle) params.set("title", currentTitle);
+  history.replaceState(null, "", `#${params.toString()}`);
 }
 
-async function loadFromText(rawText) {
+// explicitTitle carries a title in from a shared link, localStorage, or an
+// Edit-List resubmit (see pendingExplicitTitle above) — the paste box
+// itself never sets one, so any submit without an explicitTitle clears it.
+async function loadFromText(rawText, explicitTitle) {
   const { entries, errors } = await parseReferenceList(rawText);
+  let title = explicitTitle || null;
+  if (title && isProfane(title)) {
+    errors.push({ token: title, reason: "That title wasn't used — please keep it appropriate." });
+    title = null;
+  }
+  currentTitle = title;
   showErrors(errors);
+  renderTitle();
   if (!entries.length) {
     els.listSection.hidden = true;
     els.empty.hidden = false;
@@ -131,7 +169,9 @@ async function loadFromText(rawText) {
 }
 
 function handleShowVerses() {
-  loadFromText(els.inputBox.value);
+  const explicitTitle = pendingExplicitTitle;
+  pendingExplicitTitle = undefined;
+  loadFromText(els.inputBox.value, explicitTitle);
   els.loadBtn.classList.add("is-flashing");
   setTimeout(() => els.loadBtn.classList.remove("is-flashing"), 350);
 }
@@ -164,6 +204,7 @@ els.inputBox.addEventListener("keydown", (e) => {
 });
 
 els.editBtn.addEventListener("click", () => {
+  pendingExplicitTitle = currentTitle;
   els.inputBox.value = enteredOrder.map((e) => e.raw).join("\n");
   els.inputSection.scrollIntoView({ behavior: "smooth", block: "start" });
   els.inputBox.focus();
@@ -276,19 +317,21 @@ els.copyLinkBtn.addEventListener("click", async () => {
 
 // --- Restore on load: URL hash takes priority over localStorage --------
 async function init() {
-  const hashMatch = location.hash.match(/#refs=([^&]*)(?:&order=(\w+))?/);
-  if (hashMatch) {
-    const text = decodeURIComponent(hashMatch[1]);
-    orderMode = hashMatch[2] === "bible" ? "bible" : "entered";
-    await loadFromText(text);
-    return;
+  if (location.hash.length > 1) {
+    const params = new URLSearchParams(location.hash.slice(1));
+    const refs = params.get("refs");
+    if (refs) {
+      orderMode = params.get("order") === "bible" ? "bible" : "entered";
+      await loadFromText(refs, params.get("title") || undefined);
+      return;
+    }
   }
 
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
     if (saved && Array.isArray(saved.refs) && saved.refs.length) {
       orderMode = saved.orderMode === "bible" ? "bible" : "entered";
-      await loadFromText(saved.refs.join("\n"));
+      await loadFromText(saved.refs.join("\n"), saved.title || undefined);
     }
   } catch (_) {
     /* ignore malformed storage */

@@ -212,6 +212,13 @@ a {
   margin-top: 2rem;
 }
 
+.vl-list-title {
+  margin: 0 0 0.8rem;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--gold-accent);
+}
+
 .vl-list-toolbar {
   display: flex;
   align-items: center;
