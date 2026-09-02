@@ -3,6 +3,9 @@
 Paste a list of Bible verse references and read them together — in the
 order you gave, sorted into Bible order, or dragged into your own order.
 
+Anyone can use it, not just readers of other gospelgo.org apps — full book
+names and common abbreviations both work.
+
 ```
 Matthew 5:11-12
 Luke 6:22-23
