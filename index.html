@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content"
+    />
+    <title>VerseList</title>
+    <meta
+      name="description"
+      content="Paste a list of Bible verse references and read them together — in the order you gave, in Bible order, or drag to arrange your own."
+    />
+    <link rel="icon" type="image/png" href="images/Gg.png" />
+    <link rel="shortcut icon" type="image/png" href="images/Gg.png" />
+    <link rel="stylesheet" href="css/normalize.css" />
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <div class="vl-app">
+      <header class="vl-header">
+        <h1 class="vl-header__title">
+          VerseList
+          <a
+            href="https://gospelgo.org"
+            target="_blank"
+            rel="noopener"
+            class="vl-header__brand-link"
+            aria-label="Gospelgo"
+          >
+            <img src="images/Gg.png" alt="Gospelgo" class="vl-header__brand-logo" />
+          </a>
+        </h1>
+        <div class="vl-header__links">
+          <a href="https://bible-peruser.gospelgo.org" target="_blank" rel="noopener noreferrer">Bible Peruser</a>
+          <a href="https://bible-explorer.gospelgo.org" target="_blank" rel="noopener noreferrer">Bible Explorer</a>
+        </div>
+      </header>
+
+      <main class="vl-main">
+        <section class="vl-input" id="vl-input-section">
+          <label class="vl-input__label" for="vl-input-box">
+            Paste your verse references — one per line, or comma-separated
+          </label>
+          <textarea
+            id="vl-input-box"
+            class="vl-input__box"
+            placeholder="Matthew 5:11-12&#10;Luke 6:22-23&#10;Acts 5:41&#10;Acts 16:25"
+            spellcheck="false"
+          ></textarea>
+          <div class="vl-input__actions">
+            <button id="vl-load-btn" class="vl-btn vl-btn--primary" type="button">Show Verses</button>
+            <span class="vl-input__hint">Formats like "John 3:16", "1 Corinthians 13:4-7", or "Romans 8" all work.</span>
+          </div>
+          <ul class="vl-errors" id="vl-errors" hidden></ul>
+        </section>
+
+        <section class="vl-list-section" id="vl-list-section" hidden>
+          <div class="vl-list-toolbar">
+            <div class="vl-order-toggle" role="group" aria-label="Verse order">
+              <button id="vl-order-entered" class="vl-order-btn is-active" type="button">As Entered</button>
+              <button id="vl-order-bible" class="vl-order-btn" type="button">Bible Order</button>
+            </div>
+            <div class="vl-list-toolbar__right">
+              <button id="vl-copy-link-btn" class="vl-btn vl-btn--ghost" type="button">Copy Link</button>
+              <button id="vl-edit-btn" class="vl-btn vl-btn--ghost" type="button">Edit List</button>
+            </div>
+          </div>
+          <p class="vl-drag-hint" id="vl-drag-hint">Drag <span aria-hidden="true">&#9776;</span> to reorder.</p>
+          <div class="vl-cards" id="vl-cards"></div>
+        </section>
+
+        <p class="vl-empty" id="vl-empty">Paste a list of references above to get started.</p>
+      </main>
+
+      <footer class="vl-footer">
+        <span>Berean Standard Bible</span>
+        <a href="https://gospelgo.org" target="_blank" rel="noopener">gospelgo.org</a>
+      </footer>
+    </div>
+    <script type="module" src="js/app.js"></script>
+  </body>
+</html>

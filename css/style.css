@@ -1,0 +1,337 @@
+/* css/style.css — VerseList, dark mode, adapted from BiblePeruser's
+   gospelgo.org palette (css/style.css :root block). */
+:root {
+  --bg-main: #181a1b;
+  --bg-header: #23272a;
+  --bg-card: #1b1e21;
+  --bg-card-border: #3a3f44;
+  --bg-input: #202225;
+  --text-main: #f5f6fa;
+  --text-secondary: #b9bbbe;
+  --text-tertiary: #9aa5b1;
+  --accent: #5b7fd6;
+  --accent-vivid: #3f63d0;
+  --gold-accent: #ffe082;
+  --gold-accent-border: #cfab5a;
+  --error: #ff9c8a;
+  --verse-number: #8bd3ff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: var(--bg-main);
+  color: var(--text-main);
+  font-family: "Segoe UI", Arial, sans-serif;
+}
+
+a {
+  color: var(--accent-light, #b9c8f0);
+}
+
+.vl-app {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header */
+.vl-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1.25rem;
+  background: var(--bg-header);
+  border-bottom: 1px solid #333;
+  flex-wrap: wrap;
+}
+
+.vl-header__title {
+  margin: 0;
+  font-size: 1.3rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.vl-header__brand-link {
+  display: inline-flex;
+  align-items: center;
+}
+
+.vl-header__brand-logo {
+  height: 1.2em;
+  width: auto;
+  display: block;
+}
+
+.vl-header__links {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.85rem;
+}
+
+.vl-header__links a {
+  color: var(--text-tertiary);
+  text-decoration: none;
+}
+
+.vl-header__links a:hover {
+  color: var(--text-secondary);
+  text-decoration: underline;
+}
+
+/* Main */
+.vl-main {
+  flex: 1;
+  width: min(760px, 100%);
+  margin: 0 auto;
+  padding: 1.5rem 1rem 3rem;
+}
+
+.vl-input__label {
+  display: block;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.4rem;
+}
+
+.vl-input__box {
+  width: 100%;
+  min-height: 7rem;
+  resize: vertical;
+  background: var(--bg-input);
+  color: var(--text-main);
+  border: 1px solid #3a3f44;
+  border-radius: 8px;
+  padding: 0.7rem 0.8rem;
+  font-family: inherit;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.vl-input__box:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.vl-input__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin-top: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.vl-input__hint {
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+}
+
+.vl-btn {
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.vl-btn--primary {
+  background: var(--accent);
+  color: #fff;
+}
+
+.vl-btn--primary:hover {
+  background: var(--accent-vivid);
+}
+
+.vl-btn--ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid #3a3f44;
+}
+
+.vl-btn--ghost:hover {
+  border-color: var(--accent);
+  color: var(--text-main);
+}
+
+.vl-errors {
+  margin: 0.8rem 0 0;
+  padding: 0.6rem 0.9rem;
+  list-style: none;
+  background: #2a1f1f;
+  border: 1px solid var(--error);
+  border-radius: 6px;
+  color: var(--error);
+  font-size: 0.85rem;
+}
+
+.vl-errors li + li {
+  margin-top: 0.3rem;
+}
+
+/* List section */
+.vl-list-section {
+  margin-top: 2rem;
+}
+
+.vl-list-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 0.6rem;
+}
+
+.vl-order-toggle {
+  display: inline-flex;
+  border: 1px solid #3a3f44;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.vl-order-btn {
+  background: transparent;
+  color: var(--text-secondary);
+  border: none;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.vl-order-btn.is-active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.vl-list-toolbar__right {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.vl-drag-hint {
+  margin: 0 0 0.6rem;
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+}
+
+/* Cards */
+.vl-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.vl-card {
+  background: var(--bg-card);
+  border: 1px solid var(--bg-card-border);
+  border-radius: 8px;
+  padding: 0.7rem 0.9rem;
+  touch-action: none;
+}
+
+.vl-card.is-dragging {
+  box-shadow: 0 4px 14px #000a;
+  border-color: var(--accent);
+  z-index: 2;
+  position: relative;
+}
+
+.vl-card__header {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  margin-bottom: 0.35rem;
+}
+
+.vl-drag-handle {
+  cursor: grab;
+  touch-action: none;
+  color: var(--text-tertiary);
+  font-size: 1.1em;
+  padding: 0.1em 0.2em;
+  border-radius: 4px;
+}
+
+.vl-drag-handle:hover {
+  background: #2a2f34;
+  color: var(--text-main);
+}
+
+.vl-card.is-dragging .vl-drag-handle {
+  cursor: grabbing;
+}
+
+.vl-card__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--gold-accent);
+}
+
+.vl-card__body {
+  margin: 0;
+  line-height: 1.6;
+  color: var(--text-main);
+}
+
+.vl-card__body sup {
+  color: var(--verse-number);
+  margin-right: 0.3em;
+  font-weight: 600;
+}
+
+.vl-empty {
+  color: var(--text-tertiary);
+  font-size: 0.9rem;
+  margin-top: 2rem;
+}
+
+/* Footer */
+.vl-footer {
+  display: flex;
+  justify-content: center;
+  gap: 0.8rem;
+  padding: 1rem;
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+  border-top: 1px solid #2a2d2f;
+}
+
+.vl-footer a {
+  color: var(--text-tertiary);
+}
+
+@media (max-width: 520px) {
+  .vl-header {
+    padding: 0.6rem 0.9rem;
+  }
+
+  .vl-main {
+    padding: 1rem 0.8rem 2rem;
+  }
+
+  .vl-list-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .vl-list-toolbar__right {
+    justify-content: stretch;
+  }
+
+  .vl-list-toolbar__right .vl-btn {
+    flex: 1;
+  }
+}
