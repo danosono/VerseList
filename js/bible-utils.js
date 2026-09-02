@@ -213,8 +213,26 @@ export function buildBookAliasMap() {
 
 export const bookAliasMap = buildBookAliasMap();
 
+// Exact match first (so hand-curated aliases like "phlm" always win). If
+// nothing matches exactly, fall back to an unambiguous-prefix search — this
+// is what makes free-typed truncations like "1cor" or "gen" work without
+// hand-listing every possible shortening. Fails closed on ambiguity (e.g.
+// bare "jo" matches Job/Joel/Jonah/Joshua) rather than guessing wrong.
 export function resolveBookAlias(value) {
-  return bookAliasMap.get(normalizeBookAlias(value)) || null;
+  const key = normalizeBookAlias(value);
+  const exact = bookAliasMap.get(key);
+  if (exact) return exact;
+  if (key.length < 2) return null;
+
+  let match = null;
+  for (const id of bookOrder) {
+    const compactName = normalizeBookAlias(bookNames[id]);
+    if (compactName.startsWith(key) || id.toLowerCase().startsWith(key)) {
+      if (match && match !== id) return null;
+      match = id;
+    }
+  }
+  return match;
 }
 
 export function parseBookChapterInput(rawInput) {

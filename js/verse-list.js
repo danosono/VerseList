@@ -7,9 +7,14 @@
 // demand, and returns the actual verse text for each reference.
 import { bookNames, bookOrder, resolveBookAlias } from "./bible-utils.js";
 
+// The separator between the book name and the chapter number is \s* (not
+// \s+) so free-typed no-space forms work too — "eph1", "eph1:15", "1cor13:4"
+// all parse the same as their spaced equivalents, since the lazy book-name
+// group always stops at the earliest point where a chapter number can follow.
 const REF_RE =
-  /^([1-3]?\s?[A-Za-z][A-Za-z. ]*?)\s+(\d+):(\d+)(?:\s*[-–]\s*(?:(\d+):)?(\d+))?\s*(?:\([^()]*\))?$/;
-const CHAPTER_ONLY_RE = /^([1-3]?\s?[A-Za-z][A-Za-z. ]*?)\s+(\d+)$/;
+  /^([1-3]?\s?[A-Za-z][A-Za-z. ]*?)\s*(\d+):(\d+)(?:\s*[-–]\s*(?:(\d+):)?(\d+))?\s*(?:\([^()]*\))?$/;
+const CHAPTER_ONLY_RE = /^([1-3]?\s?[A-Za-z][A-Za-z. ]*?)\s*(\d+)$/;
+const MAX_TOTAL_VERSES = 3000;
 
 const bookDataCache = new Map(); // bookId -> Promise<bookJson | null>
 
@@ -62,7 +67,8 @@ function wholeChapterVerses(bookData, chapterNum) {
   return (chapter.verses || []).map((v) => ({ chapter: chapterNum, n: v.n, text: v.text }));
 }
 
-function buildLabel(bookName, chapter1, verse1, chapter2, verse2) {
+function buildLabel(bookName, chapter1, verse1, chapter2, verse2, isWholeBook) {
+  if (isWholeBook) return bookName;
   if (verse1 == null) return `${bookName} ${chapter1}`;
   if (chapter2 != null && chapter2 !== chapter1) {
     return `${bookName} ${chapter1}:${verse1}-${chapter2}:${verse2}`;
@@ -98,7 +104,13 @@ function parseToken(token) {
     const chapter1 = parseInt(chapterMatch[2], 10);
     return { bookId, chapter1, verse1: null, chapter2: chapter1, verse2: null };
   }
-  return { error: `Couldn't understand "${token}" — try a format like "John 3:16" or "Romans 8:28-30".` };
+  // No chapter/verse at all — a bare book name means "the whole book"
+  // ("Ephesians", "Genesis", "Psalms").
+  const wholeBookId = resolveBookAlias(token);
+  if (wholeBookId) {
+    return { bookId: wholeBookId, isWholeBook: true };
+  }
+  return { error: `Couldn't understand "${token}" — try a format like "John 3:16", "Romans 8", or "Ephesians".` };
 }
 
 // Parses a full pasted block and resolves verse text for every valid
@@ -109,6 +121,8 @@ export async function parseReferenceList(rawText) {
   const tokens = splitReferenceTokens(rawText);
   const entries = [];
   const errors = [];
+  const seen = new Set();
+  let totalVerses = 0;
 
   for (const token of tokens) {
     const parsed = parseToken(token);
@@ -117,11 +131,19 @@ export async function parseReferenceList(rawText) {
       continue;
     }
 
-    const { bookId, chapter1, verse1, chapter2, verse2 } = parsed;
+    const { bookId, isWholeBook } = parsed;
     const bookData = await fetchBookData(bookId);
     if (!bookData) {
       errors.push({ token, reason: `Couldn't load data for ${bookNames[bookId] || bookId}.` });
       continue;
+    }
+
+    let { chapter1, verse1, chapter2, verse2 } = parsed;
+    if (isWholeBook) {
+      chapter1 = 1;
+      chapter2 = bookData.chapterCount;
+      verse1 = null;
+      verse2 = null;
     }
 
     if (chapter1 < 1 || chapter1 > bookData.chapterCount) {
@@ -137,8 +159,15 @@ export async function parseReferenceList(rawText) {
       continue;
     }
 
-    const verses =
-      verse1 == null
+    const dedupeKey = `${bookId}|${chapter1}|${verse1}|${chapter2}|${verse2}`;
+    if (seen.has(dedupeKey)) {
+      errors.push({ token, reason: `"${token}" is already in your list — skipping the duplicate.` });
+      continue;
+    }
+
+    const verses = isWholeBook
+      ? versesInRange(bookData, 1, 1, bookData.chapterCount, Infinity)
+      : verse1 == null
         ? wholeChapterVerses(bookData, chapter1)
         : versesInRange(bookData, chapter1, verse1, chapter2, verse2);
 
@@ -146,6 +175,17 @@ export async function parseReferenceList(rawText) {
       errors.push({ token, reason: `No verses found for "${token}" — check the chapter/verse numbers.` });
       continue;
     }
+
+    if (totalVerses + verses.length > MAX_TOTAL_VERSES) {
+      errors.push({
+        token,
+        reason: `"${token}" skipped — the list is already at the ${MAX_TOTAL_VERSES}-verse limit.`,
+      });
+      continue;
+    }
+
+    seen.add(dedupeKey);
+    totalVerses += verses.length;
 
     entries.push({
       id: nextEntryId(),
@@ -157,7 +197,7 @@ export async function parseReferenceList(rawText) {
       verse1: verse1 == null ? 1 : verse1,
       chapter2,
       verse2: verse2 == null ? chapter1 : verse2,
-      label: buildLabel(bookNames[bookId] || bookId, chapter1, verse1, chapter2, verse2),
+      label: buildLabel(bookNames[bookId] || bookId, chapter1, verse1, chapter2, verse2, isWholeBook),
       verses,
     });
   }

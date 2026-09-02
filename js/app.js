@@ -130,8 +130,37 @@ async function loadFromText(rawText) {
   persist();
 }
 
-els.loadBtn.addEventListener("click", () => {
+function handleShowVerses() {
   loadFromText(els.inputBox.value);
+  els.loadBtn.classList.add("is-flashing");
+  setTimeout(() => els.loadBtn.classList.remove("is-flashing"), 350);
+}
+
+els.loadBtn.addEventListener("click", handleShowVerses);
+
+// Keyboard-only submit, since the paste box is the whole point of this app
+// and reaching for the mouse to click Show Verses breaks flow. Ctrl/Cmd+Enter
+// is the standard "submit this textarea" convention (Gmail, Slack, GitHub
+// comment boxes); plain Enter twice from a blank trailing line is a second,
+// more discoverable path — scoped to the very end of the text so it can't
+// misfire while editing earlier lines in a multi-line paste.
+els.inputBox.addEventListener("keydown", (e) => {
+  if (e.key !== "Enter") return;
+
+  if (e.metaKey || e.ctrlKey) {
+    e.preventDefault();
+    handleShowVerses();
+    return;
+  }
+
+  if (e.shiftKey || e.altKey) return;
+  const { selectionStart, selectionEnd, value } = els.inputBox;
+  const atEnd = selectionStart === selectionEnd && selectionStart === value.length;
+  const onBlankTrailingLine = /(^|\n)[ \t]*$/.test(value.slice(0, selectionStart));
+  if (atEnd && onBlankTrailingLine && value.trim().length > 0) {
+    e.preventDefault();
+    handleShowVerses();
+  }
 });
 
 els.editBtn.addEventListener("click", () => {

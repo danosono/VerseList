@@ -153,6 +153,34 @@ a {
   background: var(--accent-vivid);
 }
 
+.vl-btn:focus-visible {
+  outline: 2px solid var(--gold-accent);
+  outline-offset: 2px;
+}
+
+.vl-btn.is-flashing {
+  animation: vl-flash 0.35s ease-out;
+}
+
+@keyframes vl-flash {
+  0% {
+    box-shadow: 0 0 0 4px var(--gold-accent);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+.vl-input__hint kbd {
+  font-family: inherit;
+  font-size: 0.8em;
+  padding: 0.05em 0.4em;
+  border: 1px solid #3a3f44;
+  border-radius: 4px;
+  background: var(--bg-input);
+  color: var(--text-secondary);
+}
+
 .vl-btn--ghost {
   background: transparent;
   color: var(--text-secondary);
