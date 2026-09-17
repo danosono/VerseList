@@ -7,6 +7,7 @@ import { parseReferenceList, sortByBibleOrder, serializeEntries } from "./verse-
 import { isProfane } from "./profanity-filter.js";
 
 const STORAGE_KEY = "vlLastList";
+const PERUSER_BASE = "https://bible-peruser.gospelgo.org/";
 
 const els = {
   inputSection: document.getElementById("vl-input-section"),
@@ -17,6 +18,7 @@ const els = {
   listTitle: document.getElementById("vl-list-title"),
   orderEnteredBtn: document.getElementById("vl-order-entered"),
   orderBibleBtn: document.getElementById("vl-order-bible"),
+  copyAllBtn: document.getElementById("vl-copy-all-btn"),
   copyLinkBtn: document.getElementById("vl-copy-link-btn"),
   editBtn: document.getElementById("vl-edit-btn"),
   dragHint: document.getElementById("vl-drag-hint"),
@@ -61,6 +63,36 @@ function currentEntries() {
   return orderMode === "bible" ? sortByBibleOrder(enteredOrder) : enteredOrder;
 }
 
+// Deep-links to Bible Peruser's ?book=&chapter=&verse= reader (see that
+// project's js/bible-loader.js parseChapterDeepLink/parseDeepLinkVerseParam).
+// verse= only ever targets a single chapter there, so it's only added when
+// the reference doesn't span chapters; entry.label lacking ":" means a
+// chapter/book-only reference (verse1/verse2 get normalized to non-null
+// placeholder values for sorting even then — see verse-list.js — so the
+// label is the reliable signal here, not the numeric fields).
+function buildPeruserUrl(entry) {
+  const params = new URLSearchParams();
+  params.set("book", entry.bookId);
+  params.set("chapter", entry.chapter1);
+  if (entry.label.includes(":") && entry.chapter1 === entry.chapter2) {
+    params.set("verse", entry.verse2 !== entry.verse1 ? `${entry.verse1}-${entry.verse2}` : `${entry.verse1}`);
+  } else if (entry.label.includes(":")) {
+    params.set("verse", `${entry.verse1}`);
+  }
+  return `${PERUSER_BASE}?${params.toString()}`;
+}
+
+function formatEntryVerses(entry) {
+  let lastChapter = null;
+  return entry.verses
+    .map((v) => {
+      const marker = v.chapter !== lastChapter ? `${v.chapter}:${v.n}` : v.n;
+      lastChapter = v.chapter;
+      return `${marker} ${v.text}`;
+    })
+    .join(" ");
+}
+
 function renderCards() {
   const entries = currentEntries();
   els.cards.innerHTML = "";
@@ -83,7 +115,13 @@ function renderCards() {
 
     const title = document.createElement("h2");
     title.className = "vl-card__title";
-    title.textContent = entry.label;
+    const titleLink = document.createElement("a");
+    titleLink.className = "vl-card__title-link";
+    titleLink.href = buildPeruserUrl(entry);
+    titleLink.target = "_blank";
+    titleLink.rel = "noopener noreferrer";
+    titleLink.textContent = entry.label;
+    title.appendChild(titleLink);
     header.appendChild(title);
 
     card.appendChild(header);
@@ -224,6 +262,22 @@ els.orderBibleBtn.addEventListener("click", () => {
   updateOrderButtons();
   renderCards();
   persist();
+});
+
+els.copyAllBtn.addEventListener("click", async () => {
+  const text = currentEntries()
+    .map((entry) => `${entry.label}\n${formatEntryVerses(entry)}`)
+    .join("\n\n");
+  try {
+    await navigator.clipboard.writeText(text);
+    const original = els.copyAllBtn.textContent;
+    els.copyAllBtn.textContent = "Copied!";
+    setTimeout(() => {
+      els.copyAllBtn.textContent = original;
+    }, 1500);
+  } catch (_) {
+    window.prompt("Copy this text:", text);
+  }
 });
 
 els.copyLinkBtn.addEventListener("click", async () => {

@@ -314,6 +314,16 @@ a {
   color: var(--gold-accent);
 }
 
+.vl-card__title-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.vl-card__title-link:hover,
+.vl-card__title-link:focus-visible {
+  text-decoration: underline;
+}
+
 .vl-card__body {
   margin: 0;
   line-height: 1.6;
