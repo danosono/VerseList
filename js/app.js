@@ -20,6 +20,8 @@ const els = {
   orderBibleBtn: document.getElementById("vl-order-bible"),
   copyAllBtn: document.getElementById("vl-copy-all-btn"),
   copyLinkBtn: document.getElementById("vl-copy-link-btn"),
+  copyListBtn: document.getElementById("vl-copy-list-btn"),
+  copyArrayBtn: document.getElementById("vl-copy-array-btn"),
   editBtn: document.getElementById("vl-edit-btn"),
   dragHint: document.getElementById("vl-drag-hint"),
   cards: document.getElementById("vl-cards"),
@@ -264,34 +266,43 @@ els.orderBibleBtn.addEventListener("click", () => {
   persist();
 });
 
-els.copyAllBtn.addEventListener("click", async () => {
-  const text = currentEntries()
-    .map((entry) => `${entry.label}\n${formatEntryVerses(entry)}`)
-    .join("\n\n");
+async function copyWithFeedback(button, text) {
   try {
     await navigator.clipboard.writeText(text);
-    const original = els.copyAllBtn.textContent;
-    els.copyAllBtn.textContent = "Copied!";
+    const original = button.textContent;
+    button.textContent = "Copied!";
     setTimeout(() => {
-      els.copyAllBtn.textContent = original;
+      button.textContent = original;
     }, 1500);
   } catch (_) {
     window.prompt("Copy this text:", text);
   }
+}
+
+els.copyAllBtn.addEventListener("click", () => {
+  const text = currentEntries()
+    .map((entry) => `${entry.label}\n${formatEntryVerses(entry)}`)
+    .join("\n\n");
+  copyWithFeedback(els.copyAllBtn, text);
 });
 
-els.copyLinkBtn.addEventListener("click", async () => {
+els.copyLinkBtn.addEventListener("click", () => {
   const url = `${location.origin}${location.pathname}${location.hash}`;
-  try {
-    await navigator.clipboard.writeText(url);
-    const original = els.copyLinkBtn.textContent;
-    els.copyLinkBtn.textContent = "Copied!";
-    setTimeout(() => {
-      els.copyLinkBtn.textContent = original;
-    }, 1500);
-  } catch (_) {
-    window.prompt("Copy this link:", url);
-  }
+  copyWithFeedback(els.copyLinkBtn, url);
+});
+
+els.copyListBtn.addEventListener("click", () => {
+  const text = currentEntries()
+    .map((entry) => `"${entry.label}"`)
+    .join(", ");
+  copyWithFeedback(els.copyListBtn, text);
+});
+
+els.copyArrayBtn.addEventListener("click", () => {
+  const text = `[${currentEntries()
+    .map((entry) => JSON.stringify(entry.label))
+    .join(", ")}]`;
+  copyWithFeedback(els.copyArrayBtn, text);
 });
 
 // --- Drag-to-reorder (As Entered mode only) ---------------------------

@@ -373,9 +373,10 @@ a {
 
   .vl-list-toolbar__right {
     justify-content: stretch;
+    flex-wrap: wrap;
   }
 
   .vl-list-toolbar__right .vl-btn {
-    flex: 1;
+    flex: 1 1 calc(50% - 0.25rem);
   }
 }

@@ -33,8 +33,14 @@ function fetchBookData(bookId) {
 // Splits a pasted block into individual reference tokens. Accepts one
 // reference per line, comma-separated on one line, or both — and strips
 // wrapping quote marks so `"Matthew 5:11-12", "Luke 6:22-23"` works as-is.
+// Also strips a single pair of enclosing square brackets so a pasted JSON
+// string array (`["Matthew 5:11-12", "Luke 6:22-23"]`) parses the same way.
 export function splitReferenceTokens(rawText) {
-  return String(rawText || "")
+  let text = String(rawText || "").trim();
+  if (text.startsWith("[") && text.endsWith("]")) {
+    text = text.slice(1, -1);
+  }
+  return text
     .split(/[\n,;]/)
     .map((s) => s.trim().replace(/^["'“”‘’]+|["'“”‘’]+$/g, "").trim())
     .filter(Boolean);

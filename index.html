@@ -40,7 +40,7 @@
       <main class="vl-main">
         <section class="vl-input" id="vl-input-section">
           <label class="vl-input__label" for="vl-input-box">
-            Paste your verse references — one per line, or comma-separated
+            Type or paste your verse references — one per line or comma-separated
           </label>
           <textarea
             id="vl-input-box"
@@ -68,6 +68,22 @@
             <div class="vl-list-toolbar__right">
               <button id="vl-copy-all-btn" class="vl-btn vl-btn--ghost" type="button">Copy All Verses</button>
               <button id="vl-copy-link-btn" class="vl-btn vl-btn--ghost" type="button">Copy Link</button>
+              <button
+                id="vl-copy-list-btn"
+                class="vl-btn vl-btn--ghost"
+                type="button"
+                title='Copy as a quoted, comma-separated list: "Job 1:1", "Job 1:22"'
+              >
+                Copy as List
+              </button>
+              <button
+                id="vl-copy-array-btn"
+                class="vl-btn vl-btn--ghost"
+                type="button"
+                title='Copy as a JSON string array: ["Job 1:1", "Job 1:22"]'
+              >
+                Copy as Array
+              </button>
               <button id="vl-edit-btn" class="vl-btn vl-btn--ghost" type="button">Edit List</button>
             </div>
           </div>
@@ -75,7 +91,7 @@
           <div class="vl-cards" id="vl-cards"></div>
         </section>
 
-        <p class="vl-empty" id="vl-empty">Paste a list of references above to get started.</p>
+        <p class="vl-empty" id="vl-empty">Type or paste a list of references above to get started.</p>
       </main>
 
       <footer class="vl-footer">
