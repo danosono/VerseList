@@ -1,0 +1,9 @@
+# Book text (data/books/*.json) is static Bible text that essentially never
+# changes between deploys. Netlify's default is `max-age=0, must-revalidate`,
+# which forces a revalidation round-trip for every book on every page load —
+# including a fresh tab that already fetched the same book minutes earlier.
+# Let browsers skip the network entirely for a week; a redeploy still reaches
+# new requests immediately, it's only already-cached browsers that wait out
+# the max-age.
+/data/books/*
+  Cache-Control: public, max-age=604800, stale-while-revalidate=86400

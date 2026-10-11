@@ -11,8 +11,8 @@
       name="description"
       content="Paste a list of Bible verse references and read them together — in the order you gave, in Bible order, or drag to arrange your own."
     />
-    <link rel="icon" type="image/png" href="images/Gg.png" />
-    <link rel="shortcut icon" type="image/png" href="images/Gg.png" />
+    <link rel="icon" type="image/png" href="images/favicon-verselist-v1.png" />
+    <link rel="shortcut icon" type="image/png" href="images/favicon-verselist-v1.png" />
     <link rel="stylesheet" href="css/normalize.css" />
     <link rel="stylesheet" href="css/style.css" />
   </head>
@@ -50,6 +50,11 @@
           ></textarea>
           <div class="vl-input__actions">
             <button id="vl-load-btn" class="vl-btn vl-btn--primary" type="button">Show Verses</button>
+            <button id="vl-edit-btn" class="vl-btn vl-btn--ghost" type="button" hidden>Edit List</button>
+            <button id="vl-clear-btn" class="vl-btn vl-btn--ghost" type="button" hidden>Clear All</button>
+            <span class="vl-loading" id="vl-loading" role="status" aria-live="polite" hidden
+              ><span class="vl-spinner" aria-hidden="true"></span>Loading verses…</span
+            >
             <span class="vl-input__hint"
               >Formats like "John 3:16", "1cor 13:4-7", "Romans 8", or "Ephesians" all work. Press
               <kbd>Ctrl</kbd>+<kbd>Enter</kbd> (or <kbd>Enter</kbd> twice) to show verses.</span
@@ -84,7 +89,6 @@
               >
                 Copy as Array
               </button>
-              <button id="vl-edit-btn" class="vl-btn vl-btn--ghost" type="button">Edit List</button>
             </div>
           </div>
           <p class="vl-drag-hint" id="vl-drag-hint">Drag <span aria-hidden="true">&#9776;</span> to reorder.</p>

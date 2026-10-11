@@ -23,6 +23,8 @@ const els = {
   copyListBtn: document.getElementById("vl-copy-list-btn"),
   copyArrayBtn: document.getElementById("vl-copy-array-btn"),
   editBtn: document.getElementById("vl-edit-btn"),
+  clearBtn: document.getElementById("vl-clear-btn"),
+  loading: document.getElementById("vl-loading"),
   dragHint: document.getElementById("vl-drag-hint"),
   cards: document.getElementById("vl-cards"),
   empty: document.getElementById("vl-empty"),
@@ -182,33 +184,58 @@ function syncHash() {
   history.replaceState(null, "", `#${params.toString()}`);
 }
 
+// Fetching each referenced book's JSON (verse-list.js) can take a second or
+// more on a cold cache or a long list spanning many books — without this the
+// app just sits there after "Show Verses" with no feedback, looking hung.
+let isLoading = false;
+function setLoading(loading) {
+  isLoading = loading;
+  els.loadBtn.disabled = loading;
+  els.loading.hidden = !loading;
+}
+
+// Edit List and Clear All only make sense once there's a list to edit or
+// clear — they live next to Show Verses, not in the list's own toolbar, so
+// their visibility has to be driven explicitly rather than inherited from
+// vl-list-section's hidden state.
+function setListVisible(visible) {
+  els.listSection.hidden = !visible;
+  els.empty.hidden = visible;
+  els.editBtn.hidden = !visible;
+  els.clearBtn.hidden = !visible;
+}
+
 // explicitTitle carries a title in from a shared link, localStorage, or an
 // Edit-List resubmit (see pendingExplicitTitle above) — the paste box
 // itself never sets one, so any submit without an explicitTitle clears it.
 async function loadFromText(rawText, explicitTitle) {
-  const { entries, errors } = await parseReferenceList(rawText);
-  let title = explicitTitle || null;
-  if (title && isProfane(title)) {
-    errors.push({ token: title, reason: "That title wasn't used — please keep it appropriate." });
-    title = null;
+  setLoading(true);
+  try {
+    const { entries, errors } = await parseReferenceList(rawText);
+    let title = explicitTitle || null;
+    if (title && isProfane(title)) {
+      errors.push({ token: title, reason: "That title wasn't used — please keep it appropriate." });
+      title = null;
+    }
+    currentTitle = title;
+    showErrors(errors);
+    renderTitle();
+    if (!entries.length) {
+      setListVisible(false);
+      return;
+    }
+    enteredOrder = entries;
+    setListVisible(true);
+    renderCards();
+    updateOrderButtons();
+    persist();
+  } finally {
+    setLoading(false);
   }
-  currentTitle = title;
-  showErrors(errors);
-  renderTitle();
-  if (!entries.length) {
-    els.listSection.hidden = true;
-    els.empty.hidden = false;
-    return;
-  }
-  enteredOrder = entries;
-  els.empty.hidden = true;
-  els.listSection.hidden = false;
-  renderCards();
-  updateOrderButtons();
-  persist();
 }
 
 function handleShowVerses() {
+  if (isLoading) return;
   const explicitTitle = pendingExplicitTitle;
   pendingExplicitTitle = undefined;
   loadFromText(els.inputBox.value, explicitTitle);
@@ -247,6 +274,28 @@ els.editBtn.addEventListener("click", () => {
   pendingExplicitTitle = currentTitle;
   els.inputBox.value = enteredOrder.map((e) => e.raw).join("\n");
   els.inputSection.scrollIntoView({ behavior: "smooth", block: "start" });
+  els.inputBox.focus();
+});
+
+els.clearBtn.addEventListener("click", () => {
+  if (!enteredOrder.length) return;
+  if (!window.confirm("Clear all verses in this list?")) return;
+
+  enteredOrder = [];
+  orderMode = "entered";
+  currentTitle = null;
+  pendingExplicitTitle = undefined;
+  els.inputBox.value = "";
+  showErrors([]);
+  renderTitle();
+  updateOrderButtons();
+  setListVisible(false);
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch (_) {
+    /* storage unavailable */
+  }
+  history.replaceState(null, "", location.pathname + location.search);
   els.inputBox.focus();
 });
 

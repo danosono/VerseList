@@ -171,6 +171,34 @@ a {
   }
 }
 
+.vl-loading:not([hidden]) {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-tertiary);
+}
+
+.vl-spinner {
+  width: 0.9rem;
+  height: 0.9rem;
+  border: 2px solid #3a3f44;
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: vl-spin 0.7s linear infinite;
+}
+
+@keyframes vl-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.vl-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 .vl-input__hint kbd {
   font-family: inherit;
   font-size: 0.8em;
