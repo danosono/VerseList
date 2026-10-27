@@ -11,9 +11,26 @@ import { bookNames, bookOrder, resolveBookAlias } from "./bible-utils.js";
 // \s+) so free-typed no-space forms work too — "eph1", "eph1:15", "1cor13:4"
 // all parse the same as their spaced equivalents, since the lazy book-name
 // group always stops at the earliest point where a chapter number can follow.
+// Note: REF_RE and OSIS_RE are intentionally NOT end-anchored. A pasted
+// token may have junk trailing a valid verse/range (copied footnotes,
+// stray punctuation, whatever else came along for the ride) — since we
+// don't control what people paste, we just take the valid reference at
+// the start and silently ignore everything after it, rather than
+// rejecting the whole line. The chapter-only and whole-book forms stay
+// exact-match: a bare "Romans 8 ..." is ambiguous enough (is "..." part
+// of the book name? junk?) that it's safer to require those line up
+// exactly.
 const REF_RE =
-  /^([1-3]?\s?[A-Za-z][A-Za-z. ]*?)\s*(\d+):(\d+)(?:\s*[-–]\s*(?:(\d+):)?(\d+))?\s*(?:\([^()]*\))?$/;
+  /^([1-3]?\s?[A-Za-z][A-Za-z. ]*?)\s*(\d+):(\d+)(?:\s*[-–]\s*(?:(\d+):)?(\d+))?/;
 const CHAPTER_ONLY_RE = /^([1-3]?\s?[A-Za-z][A-Za-z. ]*?)\s*(\d+)$/;
+
+// OSIS format, e.g. "Gen.37.18-20" or "John.1.11" — used by the sibling
+// gospelgo.org app's quest content (public/content/quests/*.json), so
+// pasting straight out of that JSON should work here too. OSIS ranges are
+// same-chapter only (matches that app's own parseOsisRef), so no cross-
+// chapter dot form is needed.
+const OSIS_RE = /^([1-3]?[A-Za-z]+)\.(\d+)\.(\d+)(?:\s*[-–]\s*(\d+))?/;
+const OSIS_CHAPTER_ONLY_RE = /^([1-3]?[A-Za-z]+)\.(\d+)$/;
 const MAX_TOTAL_VERSES = 3000;
 
 const bookDataCache = new Map(); // bookId -> Promise<bookJson | null>
@@ -103,11 +120,27 @@ function parseToken(token) {
     const verse2 = refMatch[5] ? parseInt(refMatch[5], 10) : verse1;
     return { bookId, chapter1, verse1, chapter2, verse2 };
   }
+  const osisMatch = token.match(OSIS_RE);
+  if (osisMatch) {
+    const bookId = resolveBookAlias(osisMatch[1]);
+    if (!bookId) return { error: `Unrecognized book name in "${token}"` };
+    const chapter1 = parseInt(osisMatch[2], 10);
+    const verse1 = parseInt(osisMatch[3], 10);
+    const verse2 = osisMatch[4] ? parseInt(osisMatch[4], 10) : verse1;
+    return { bookId, chapter1, verse1, chapter2: chapter1, verse2 };
+  }
   const chapterMatch = token.match(CHAPTER_ONLY_RE);
   if (chapterMatch) {
     const bookId = resolveBookAlias(chapterMatch[1]);
     if (!bookId) return { error: `Unrecognized book name in "${token}"` };
     const chapter1 = parseInt(chapterMatch[2], 10);
+    return { bookId, chapter1, verse1: null, chapter2: chapter1, verse2: null };
+  }
+  const osisChapterMatch = token.match(OSIS_CHAPTER_ONLY_RE);
+  if (osisChapterMatch) {
+    const bookId = resolveBookAlias(osisChapterMatch[1]);
+    if (!bookId) return { error: `Unrecognized book name in "${token}"` };
+    const chapter1 = parseInt(osisChapterMatch[2], 10);
     return { bookId, chapter1, verse1: null, chapter2: chapter1, verse2: null };
   }
   // No chapter/verse at all — a bare book name means "the whole book"

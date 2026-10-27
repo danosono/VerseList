@@ -207,6 +207,8 @@ export function buildBookAliasMap() {
   addAlias("philip", "PHP");
   addAlias("phlm", "PHM");
   addAlias("judg", "JDG");
+  addAlias("1kgs", "1KI");
+  addAlias("2kgs", "2KI");
 
   return aliasMap;
 }

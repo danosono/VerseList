@@ -164,7 +164,11 @@ function updateOrderButtons() {
   els.orderBibleBtn.classList.toggle("is-active", orderMode === "bible");
 }
 
-function persist() {
+// pushHistory: true adds a new back/forward entry (a genuinely new list —
+// "Show Verses" or Clear); false (default) replaces the current entry in
+// place (order-mode toggle, drag-reorder, or restoring from the hash on
+// load/popstate) so those don't clutter back/forward with every minor tweak.
+function persist({ pushHistory = false } = {}) {
   try {
     localStorage.setItem(
       STORAGE_KEY,
@@ -173,15 +177,20 @@ function persist() {
   } catch (_) {
     /* storage unavailable — sharing/reload restore just won't persist */
   }
-  syncHash();
+  syncHash(pushHistory);
 }
 
-function syncHash() {
+function syncHash(pushHistory) {
   const params = new URLSearchParams();
   params.set("refs", serializeEntries(enteredOrder));
   if (orderMode === "bible") params.set("order", "bible");
   if (currentTitle) params.set("title", currentTitle);
-  history.replaceState(null, "", `#${params.toString()}`);
+  const hash = `#${params.toString()}`;
+  if (pushHistory) {
+    history.pushState(null, "", hash);
+  } else {
+    history.replaceState(null, "", hash);
+  }
 }
 
 // Fetching each referenced book's JSON (verse-list.js) can take a second or
@@ -208,7 +217,7 @@ function setListVisible(visible) {
 // explicitTitle carries a title in from a shared link, localStorage, or an
 // Edit-List resubmit (see pendingExplicitTitle above) — the paste box
 // itself never sets one, so any submit without an explicitTitle clears it.
-async function loadFromText(rawText, explicitTitle) {
+async function loadFromText(rawText, explicitTitle, { pushHistory = false } = {}) {
   setLoading(true);
   try {
     const { entries, errors } = await parseReferenceList(rawText);
@@ -228,7 +237,7 @@ async function loadFromText(rawText, explicitTitle) {
     setListVisible(true);
     renderCards();
     updateOrderButtons();
-    persist();
+    persist({ pushHistory });
   } finally {
     setLoading(false);
   }
@@ -238,7 +247,7 @@ function handleShowVerses() {
   if (isLoading) return;
   const explicitTitle = pendingExplicitTitle;
   pendingExplicitTitle = undefined;
-  loadFromText(els.inputBox.value, explicitTitle);
+  loadFromText(els.inputBox.value, explicitTitle, { pushHistory: true });
   els.loadBtn.classList.add("is-flashing");
   setTimeout(() => els.loadBtn.classList.remove("is-flashing"), 350);
 }
@@ -277,10 +286,9 @@ els.editBtn.addEventListener("click", () => {
   els.inputBox.focus();
 });
 
-els.clearBtn.addEventListener("click", () => {
-  if (!enteredOrder.length) return;
-  if (!window.confirm("Clear all verses in this list?")) return;
-
+// Shared by the Clear button and by popstate landing on a hash with no
+// `refs` (back past the first list ever shown, or forward past a Clear).
+function resetToEmpty() {
   enteredOrder = [];
   orderMode = "entered";
   currentTitle = null;
@@ -290,12 +298,20 @@ els.clearBtn.addEventListener("click", () => {
   renderTitle();
   updateOrderButtons();
   setListVisible(false);
+}
+
+els.clearBtn.addEventListener("click", () => {
+  if (!enteredOrder.length) return;
+  if (!window.confirm("Clear all verses in this list?")) return;
+
+  resetToEmpty();
   try {
     localStorage.removeItem(STORAGE_KEY);
   } catch (_) {
     /* storage unavailable */
   }
-  history.replaceState(null, "", location.pathname + location.search);
+  // Pushed (not replaced) so Back restores the list that was just cleared.
+  history.pushState(null, "", location.pathname + location.search);
   els.inputBox.focus();
 });
 
@@ -429,27 +445,44 @@ els.copyArrayBtn.addEventListener("click", () => {
   els.cards.addEventListener("pointerdown", onPointerDown);
 })();
 
+// --- Restore from the URL hash (shared by initial load and popstate) ---
+// Returns true if the hash had a list to restore, false if there was
+// nothing there (caller decides what "nothing" means — fall back to
+// localStorage on load, or show the empty state on popstate).
+async function tryLoadFromHash() {
+  if (location.hash.length <= 1) return false;
+  const params = new URLSearchParams(location.hash.slice(1));
+  const refs = params.get("refs");
+  if (!refs) return false;
+  orderMode = params.get("order") === "bible" ? "bible" : "entered";
+  // pushHistory stays false: we're syncing state to a URL that's already
+  // there (on load) or that the browser just navigated to (on popstate),
+  // not creating a new back/forward step.
+  await loadFromText(refs, params.get("title") || undefined, { pushHistory: false });
+  return true;
+}
+
 // --- Restore on load: URL hash takes priority over localStorage --------
 async function init() {
-  if (location.hash.length > 1) {
-    const params = new URLSearchParams(location.hash.slice(1));
-    const refs = params.get("refs");
-    if (refs) {
-      orderMode = params.get("order") === "bible" ? "bible" : "entered";
-      await loadFromText(refs, params.get("title") || undefined);
-      return;
-    }
-  }
+  if (await tryLoadFromHash()) return;
 
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
     if (saved && Array.isArray(saved.refs) && saved.refs.length) {
       orderMode = saved.orderMode === "bible" ? "bible" : "entered";
-      await loadFromText(saved.refs.join("\n"), saved.title || undefined);
+      await loadFromText(saved.refs.join("\n"), saved.title || undefined, { pushHistory: false });
     }
   } catch (_) {
     /* ignore malformed storage */
   }
 }
+
+// Show Verses and Clear push a history entry (see persist()/clearBtn above),
+// so Back/Forward now actually have somewhere to go — restore whichever
+// list's hash the browser just navigated to.
+window.addEventListener("popstate", async () => {
+  if (await tryLoadFromHash()) return;
+  resetToEmpty();
+});
 
 init();
