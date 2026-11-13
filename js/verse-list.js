@@ -200,7 +200,11 @@ export async function parseReferenceList(rawText) {
 
     const dedupeKey = `${bookId}|${chapter1}|${verse1}|${chapter2}|${verse2}`;
     if (seen.has(dedupeKey)) {
-      errors.push({ token, reason: `"${token}" is already in your list — skipping the duplicate.` });
+      errors.push({
+        token,
+        duplicate: true,
+        reason: `"${token}" is already in your list — skipping the duplicate.`,
+      });
       continue;
     }
 
@@ -229,6 +233,7 @@ export async function parseReferenceList(rawText) {
     entries.push({
       id: nextEntryId(),
       raw: token,
+      dedupeKey,
       bookId,
       bookName: bookNames[bookId] || bookId,
       bookOrderIndex: bookOrder.indexOf(bookId),

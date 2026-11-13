@@ -20,7 +20,15 @@
     <div class="vl-app">
       <header class="vl-header">
         <h1 class="vl-header__title">
-          VerseList
+          <button
+            class="vl-header__title-btn"
+            type="button"
+            data-about-open
+            title="About VerseList"
+            aria-haspopup="dialog"
+          >
+            VerseList
+          </button>
           <a
             href="https://gospelgo.org"
             target="_blank"
@@ -50,18 +58,59 @@
           ></textarea>
           <div class="vl-input__actions">
             <button id="vl-load-btn" class="vl-btn vl-btn--primary" type="button">Show Verses</button>
-            <button id="vl-edit-btn" class="vl-btn vl-btn--ghost" type="button" hidden>Edit List</button>
-            <button id="vl-clear-btn" class="vl-btn vl-btn--ghost" type="button" hidden>Clear All</button>
+            <button
+              id="vl-revert-btn"
+              class="vl-btn vl-btn--ghost"
+              type="button"
+              title="Throw away what you've typed and put the box back to what the cards show"
+              hidden
+            >
+              Discard Changes
+            </button>
+            <button
+              id="vl-clear-btn"
+              class="vl-btn vl-btn--ghost"
+              type="button"
+              title="Remove every reference and start over (Back brings the list back)"
+              hidden
+            >
+              Clear All
+            </button>
             <span class="vl-loading" id="vl-loading" role="status" aria-live="polite" hidden
               ><span class="vl-spinner" aria-hidden="true"></span>Loading verses…</span
             >
             <span class="vl-input__hint"
               >Formats like "John 3:16", "1cor 13:4-7", "Romans 8", or "Ephesians" all work. Press
-              <kbd>Ctrl</kbd>+<kbd>Enter</kbd> (or <kbd>Enter</kbd> twice) to show verses.</span
+              <kbd>Ctrl</kbd>+<kbd>Enter</kbd> (or <kbd>Enter</kbd> twice) to show verses. This box always holds
+              your list: add, change or delete lines here, or drag and remove the cards below.</span
             >
           </div>
-          <ul class="vl-errors" id="vl-errors" hidden></ul>
+          <p class="vl-sync" id="vl-sync" role="status" hidden></p>
+          <div class="vl-errors" id="vl-errors" role="alert" hidden>
+            <button
+              id="vl-errors-close"
+              class="vl-errors__close"
+              type="button"
+              title="Dismiss these messages"
+              aria-label="Dismiss these messages"
+            >
+              &times;
+            </button>
+            <ul class="vl-errors__list" id="vl-errors-list"></ul>
+          </div>
         </section>
+
+        <p class="vl-undo" id="vl-undo" role="status" aria-live="polite" hidden>
+          <span id="vl-undo-text"></span>
+          <button
+            id="vl-undo-btn"
+            class="vl-btn vl-btn--ghost"
+            type="button"
+            title="Put the removed reference back where it was"
+          >
+            Undo
+          </button>
+        </p>
 
         <section class="vl-list-section" id="vl-list-section" hidden>
           <h2 class="vl-list-title" id="vl-list-title" hidden></h2>
@@ -92,6 +141,7 @@
             </div>
           </div>
           <p class="vl-drag-hint" id="vl-drag-hint">Drag <span aria-hidden="true">&#9776;</span> to reorder.</p>
+          <p class="vl-drag-hint" id="vl-bible-hint" hidden>Switch to As Entered to drag verses into your own order.</p>
           <div class="vl-cards" id="vl-cards"></div>
         </section>
 
@@ -101,8 +151,70 @@
       <footer class="vl-footer">
         <a href="https://bereanbible.com/" target="_blank" rel="noopener">Berean Standard Bible</a>
         <a href="https://gospelgo.org" target="_blank" rel="noopener">gospelgo.org</a>
+        <button class="vl-footer__link" type="button" data-about-open aria-haspopup="dialog">About</button>
       </footer>
     </div>
+
+    <dialog class="vl-about" id="vl-about" aria-labelledby="vl-about-title">
+      <button
+        class="vl-about__close"
+        id="vl-about-close"
+        type="button"
+        title="Close"
+        aria-label="Close"
+      >
+        &times;
+      </button>
+      <h2 class="vl-about__title" id="vl-about-title">About VerseList</h2>
+
+      <h3>What it's for</h3>
+      <p>
+        Read a list of Bible verses together on one page, or build and arrange a list of your own, then copy it
+        or share it as a link.
+      </p>
+
+      <h3>How it works</h3>
+      <ul>
+        <li>
+          Type or paste references into the box, one per line or comma-separated. "John 3:16", "1cor 13:4-7",
+          "Romans 8" and "Ephesians" all work.
+        </li>
+        <li>
+          The box always holds your list. Add, change or delete lines there and press Update List, or drag
+          &#9776; and press &times; on the cards.
+        </li>
+        <li>A line under the buttons tells you whether the box and the cards match.</li>
+        <li>As Entered shows your own order; Bible Order sorts Genesis to Revelation without losing yours.</li>
+        <li>
+          The copy buttons and Copy Link use the order shown. Copy All Verses includes the verse text; Copy as
+          List and Copy as Array give just the references.
+        </li>
+        <li>Each card's heading opens that passage in Bible Peruser.</li>
+      </ul>
+
+      <h3>Part of Gospel Go</h3>
+      <p>
+        VerseList is one of the
+        <a href="https://gospelgo.org" target="_blank" rel="noopener">Gospel Go</a> Bible apps, alongside
+        <a href="https://bible-peruser.gospelgo.org" target="_blank" rel="noopener noreferrer">Bible Peruser</a>
+        and
+        <a href="https://bible-explorer.gospelgo.org" target="_blank" rel="noopener noreferrer">Bible Explorer</a
+        >. The other apps can hand a list of verses to VerseList by link, and it works just as well on its own.
+      </p>
+
+      <h3>Privacy</h3>
+      <p>
+        No account and no tracking. Your list is kept in your browser and in the link you choose to share.
+      </p>
+
+      <h3>Bible text</h3>
+      <p>
+        Verses are from the
+        <a href="https://bereanbible.com/" target="_blank" rel="noopener">Berean Standard Bible</a>.
+      </p>
+
+      <p class="vl-about__year">VerseList &middot; 2026</p>
+    </dialog>
     <script type="module" src="js/app.js"></script>
   </body>
 </html>

@@ -13,7 +13,15 @@ const els = {
   inputSection: document.getElementById("vl-input-section"),
   inputBox: document.getElementById("vl-input-box"),
   loadBtn: document.getElementById("vl-load-btn"),
+  revertBtn: document.getElementById("vl-revert-btn"),
+  sync: document.getElementById("vl-sync"),
+  undo: document.getElementById("vl-undo"),
+  undoText: document.getElementById("vl-undo-text"),
+  undoBtn: document.getElementById("vl-undo-btn"),
+  bibleHint: document.getElementById("vl-bible-hint"),
   errors: document.getElementById("vl-errors"),
+  errorsList: document.getElementById("vl-errors-list"),
+  errorsClose: document.getElementById("vl-errors-close"),
   listSection: document.getElementById("vl-list-section"),
   listTitle: document.getElementById("vl-list-title"),
   orderEnteredBtn: document.getElementById("vl-order-entered"),
@@ -22,7 +30,6 @@ const els = {
   copyLinkBtn: document.getElementById("vl-copy-link-btn"),
   copyListBtn: document.getElementById("vl-copy-list-btn"),
   copyArrayBtn: document.getElementById("vl-copy-array-btn"),
-  editBtn: document.getElementById("vl-edit-btn"),
   clearBtn: document.getElementById("vl-clear-btn"),
   loading: document.getElementById("vl-loading"),
   dragHint: document.getElementById("vl-drag-hint"),
@@ -43,14 +50,58 @@ const DEFAULT_DOCUMENT_TITLE = document.title;
 let enteredOrder = [];
 let orderMode = "entered";
 let currentTitle = null;
-// Set by the Edit List button so the very next submit carries the current
-// title through unchanged (editing an already-titled list shouldn't lose
-// its name). Any other submit clears the title — pasting a fresh,
-// unrelated list shouldn't keep showing an old one's name.
-let pendingExplicitTitle;
+
+// --- The box mirrors the cards -------------------------------------------
+// There is one list. The cards are its view; the box is the same list as
+// text, always in As Entered order. Editing via the cards (drag, remove,
+// undo) rewrites the box; editing the box and pressing Update List rebuilds
+// the cards. syncedText is the list as last written to / read from the box,
+// so "box differs from syncedText" means the user has typed something the
+// cards don't show yet — in that state card edits leave the box alone
+// rather than overwrite work in progress, and the status line says so.
+let syncedText = "";
+
+function listText() {
+  return enteredOrder.map((e) => e.raw).join("\n");
+}
+
+function isBoxDirty() {
+  return els.inputBox.value.trim() !== syncedText;
+}
+
+// Call after any card-side change to the list.
+function mirrorBox() {
+  if (!isBoxDirty()) {
+    syncedText = listText();
+    els.inputBox.value = syncedText;
+  }
+  refreshBoxState();
+}
+
+function refreshBoxState() {
+  const hasList = enteredOrder.length > 0;
+  const dirty = isBoxDirty();
+
+  els.loadBtn.textContent = hasList ? "Update List" : "Show Verses";
+  els.loadBtn.disabled = isLoading || (hasList && !dirty);
+  els.loadBtn.title = !hasList
+    ? "Look up the references in the box and show their verses"
+    : dirty
+      ? "Rebuilds the cards from the box: new lines are added, deleted lines are removed, and the order follows the box"
+      : "Nothing to update — the box and the cards already match. Edit the box first.";
+
+  els.revertBtn.hidden = !(hasList && dirty);
+  els.sync.hidden = !hasList;
+  els.sync.classList.toggle("is-dirty", dirty);
+  els.sync.textContent = dirty
+    ? "The box has changes the cards don't show yet — press Update List to apply them."
+    : orderMode === "bible"
+      ? "The box and the cards match. (The box keeps your As Entered order; the cards are showing Bible Order.)"
+      : "The box and the cards match.";
+}
 
 function showErrors(errors) {
-  els.errors.innerHTML = "";
+  els.errorsList.innerHTML = "";
   if (!errors.length) {
     els.errors.hidden = true;
     return;
@@ -58,10 +109,12 @@ function showErrors(errors) {
   errors.forEach((e) => {
     const li = document.createElement("li");
     li.textContent = e.reason;
-    els.errors.appendChild(li);
+    els.errorsList.appendChild(li);
   });
   els.errors.hidden = false;
 }
+
+els.errorsClose.addEventListener("click", () => showErrors([]));
 
 function currentEntries() {
   return orderMode === "bible" ? sortByBibleOrder(enteredOrder) : enteredOrder;
@@ -113,6 +166,7 @@ function renderCards() {
       const handle = document.createElement("span");
       handle.className = "vl-drag-handle";
       handle.setAttribute("aria-hidden", "true");
+      handle.title = "Drag to move this reference up or down the list";
       handle.innerHTML = "&#9776;";
       header.appendChild(handle);
     }
@@ -127,6 +181,16 @@ function renderCards() {
     titleLink.textContent = entry.label;
     title.appendChild(titleLink);
     header.appendChild(title);
+
+    // "×" is U+00D7 (Latin-1), present in every text font — unlike the
+    // dingbat crosses, which can render empty.
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.className = "vl-card__remove";
+    removeBtn.textContent = "×";
+    removeBtn.title = `Remove ${entry.label} from the list (you can undo)`;
+    removeBtn.setAttribute("aria-label", `Remove ${entry.label} from list`);
+    header.appendChild(removeBtn);
 
     card.appendChild(header);
 
@@ -146,6 +210,8 @@ function renderCards() {
   });
 
   els.dragHint.hidden = orderMode !== "entered" || entries.length < 2;
+  els.bibleHint.hidden = orderMode !== "bible" || entries.length < 2;
+  updateTooltips();
 }
 
 function renderTitle() {
@@ -199,29 +265,112 @@ function syncHash(pushHistory) {
 let isLoading = false;
 function setLoading(loading) {
   isLoading = loading;
-  els.loadBtn.disabled = loading;
   els.loading.hidden = !loading;
+  refreshBoxState();
 }
 
-// Edit List and Clear All only make sense once there's a list to edit or
-// clear — they live next to Show Verses, not in the list's own toolbar, so
-// their visibility has to be driven explicitly rather than inherited from
-// vl-list-section's hidden state.
+// Clear All only makes sense once there's a list to clear — it lives next
+// to the main button, not in the list's own toolbar, so its visibility has
+// to be driven explicitly rather than inherited from vl-list-section's
+// hidden state.
 function setListVisible(visible) {
   els.listSection.hidden = !visible;
   els.empty.hidden = visible;
-  els.editBtn.hidden = !visible;
   els.clearBtn.hidden = !visible;
+  updateTooltips();
 }
 
-// explicitTitle carries a title in from a shared link, localStorage, or an
-// Edit-List resubmit (see pendingExplicitTitle above) — the paste box
-// itself never sets one, so any submit without an explicitTitle clears it.
-async function loadFromText(rawText, explicitTitle, { pushHistory = false } = {}) {
+// --- Remove a card (with Undo) ------------------------------------------
+// No confirm dialog: removing is one tap, so the safety net is a short-lived
+// Undo bar instead. Only the most recent removal is undoable, and any
+// wholesale list change (new list, Clear, Back/Forward) drops it.
+let lastRemoved = null; // { entry, index } — index is into enteredOrder
+let undoTimer = 0;
+
+function hideUndo() {
+  clearTimeout(undoTimer);
+  lastRemoved = null;
+  els.undo.hidden = true;
+}
+
+function clearStoredList() {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch (_) {
+    /* storage unavailable */
+  }
+}
+
+function removeEntry(id) {
+  const index = enteredOrder.findIndex((e) => e.id === id);
+  if (index === -1) return;
+  const [entry] = enteredOrder.splice(index, 1);
+
+  clearTimeout(undoTimer);
+  lastRemoved = { entry, index };
+  els.undoText.textContent = `Removed ${entry.label}.`;
+  els.undo.hidden = false;
+  undoTimer = setTimeout(hideUndo, 8000);
+
+  mirrorBox();
+  if (enteredOrder.length) {
+    renderCards();
+    persist();
+    return;
+  }
+  // Removed the last card — same end state as Clear All, minus the confirm
+  // (Undo covers it) and minus a history entry.
+  setListVisible(false);
+  clearStoredList();
+  history.replaceState(null, "", location.pathname + location.search);
+}
+
+els.cards.addEventListener("click", (e) => {
+  const btn = e.target.closest(".vl-card__remove");
+  if (!btn) return;
+  removeEntry(btn.closest(".vl-card").dataset.id);
+});
+
+els.undoBtn.addEventListener("click", () => {
+  if (!lastRemoved) return;
+  const { entry, index } = lastRemoved;
+  hideUndo();
+  enteredOrder.splice(Math.min(index, enteredOrder.length), 0, entry);
+  setListVisible(true);
+  renderCards();
+  updateOrderButtons();
+  persist();
+  mirrorBox();
+});
+
+// Rebuilds the list from text. fromBox: the text is what the user typed in
+// the box (Show Verses / Update List); otherwise it came from a link or
+// localStorage, and `title` carries that source's title.
+//
+// Titles: the box never sets one. An update from the box keeps the current
+// title only if at least one reference survives into the new list — that's
+// an edit of the titled list; a wholesale paste of an unrelated list
+// shouldn't keep showing the old one's name.
+async function loadFromText(rawText, { title: explicitTitle, fromBox = false, pushHistory = false } = {}) {
   setLoading(true);
   try {
     const { entries, errors } = await parseReferenceList(rawText);
-    let title = explicitTitle || null;
+
+    // Nothing in the box resolved, but there's a list on screen: keep it
+    // rather than blank the page over a typo. The box stays as typed (and
+    // so reads as "has changes") for the user to fix.
+    if (!entries.length && fromBox && enteredOrder.length) {
+      showErrors(errors);
+      return;
+    }
+
+    hideUndo();
+    const previousKeys = new Set(enteredOrder.map((e) => e.dedupeKey));
+    let title = fromBox
+      ? entries.some((e) => previousKeys.has(e.dedupeKey))
+        ? currentTitle
+        : null
+      : explicitTitle || null;
     if (title && isProfane(title)) {
       errors.push({ token: title, reason: "That title wasn't used — please keep it appropriate." });
       title = null;
@@ -229,13 +378,26 @@ async function loadFromText(rawText, explicitTitle, { pushHistory = false } = {}
     currentTitle = title;
     showErrors(errors);
     renderTitle();
+
+    enteredOrder = entries;
+    syncedText = listText();
+    // Normalize the box to the list — unless something the user typed
+    // failed, in which case leave their text alone so the bad line can be
+    // fixed in place. (Duplicates aren't worth keeping; they just drop.)
+    if (!fromBox || !errors.some((e) => !e.duplicate)) {
+      els.inputBox.value = syncedText;
+    }
+
     if (!entries.length) {
       setListVisible(false);
       return;
     }
-    enteredOrder = entries;
     setListVisible(true);
     renderCards();
+    if (fromBox && previousKeys.size) {
+      const newIds = new Set(entries.filter((e) => !previousKeys.has(e.dedupeKey)).map((e) => e.id));
+      Array.from(els.cards.children).forEach((c) => c.classList.toggle("is-new", newIds.has(c.dataset.id)));
+    }
     updateOrderButtons();
     persist({ pushHistory });
   } finally {
@@ -245,9 +407,16 @@ async function loadFromText(rawText, explicitTitle, { pushHistory = false } = {}
 
 function handleShowVerses() {
   if (isLoading) return;
-  const explicitTitle = pendingExplicitTitle;
-  pendingExplicitTitle = undefined;
-  loadFromText(els.inputBox.value, explicitTitle, { pushHistory: true });
+  const text = els.inputBox.value;
+  if (enteredOrder.length) {
+    if (!isBoxDirty()) return;
+    // Emptying the box and updating means "no list" — same as Clear All.
+    if (!text.trim()) {
+      clearAll();
+      return;
+    }
+  }
+  loadFromText(text, { fromBox: true, pushHistory: true });
   els.loadBtn.classList.add("is-flashing");
   setTimeout(() => els.loadBtn.classList.remove("is-flashing"), 350);
 }
@@ -279,20 +448,24 @@ els.inputBox.addEventListener("keydown", (e) => {
   }
 });
 
-els.editBtn.addEventListener("click", () => {
-  pendingExplicitTitle = currentTitle;
-  els.inputBox.value = enteredOrder.map((e) => e.raw).join("\n");
-  els.inputSection.scrollIntoView({ behavior: "smooth", block: "start" });
-  els.inputBox.focus();
+els.inputBox.addEventListener("input", refreshBoxState);
+
+// Throw away unapplied typing and put the box back to what the cards show.
+els.revertBtn.addEventListener("click", () => {
+  syncedText = listText();
+  els.inputBox.value = syncedText;
+  showErrors([]);
+  refreshBoxState();
 });
 
 // Shared by the Clear button and by popstate landing on a hash with no
 // `refs` (back past the first list ever shown, or forward past a Clear).
 function resetToEmpty() {
+  hideUndo();
   enteredOrder = [];
   orderMode = "entered";
   currentTitle = null;
-  pendingExplicitTitle = undefined;
+  syncedText = "";
   els.inputBox.value = "";
   showErrors([]);
   renderTitle();
@@ -300,20 +473,18 @@ function resetToEmpty() {
   setListVisible(false);
 }
 
-els.clearBtn.addEventListener("click", () => {
+function clearAll() {
   if (!enteredOrder.length) return;
   if (!window.confirm("Clear all verses in this list?")) return;
 
   resetToEmpty();
-  try {
-    localStorage.removeItem(STORAGE_KEY);
-  } catch (_) {
-    /* storage unavailable */
-  }
+  clearStoredList();
   // Pushed (not replaced) so Back restores the list that was just cleared.
   history.pushState(null, "", location.pathname + location.search);
   els.inputBox.focus();
-});
+}
+
+els.clearBtn.addEventListener("click", clearAll);
 
 els.orderEnteredBtn.addEventListener("click", () => {
   if (orderMode === "entered") return;
@@ -344,31 +515,53 @@ async function copyWithFeedback(button, text) {
   }
 }
 
-els.copyAllBtn.addEventListener("click", () => {
-  const text = currentEntries()
-    .map((entry) => `${entry.label}\n${formatEntryVerses(entry)}`)
-    .join("\n\n");
-  copyWithFeedback(els.copyAllBtn, text);
-});
+// One builder per copy button, used by both the click handler and the
+// button's tooltip, so the tooltip can never describe something other than
+// what actually lands on the clipboard.
+const copyBuilders = {
+  all: () =>
+    currentEntries()
+      .map((entry) => `${entry.label}\n${formatEntryVerses(entry)}`)
+      .join("\n\n"),
+  link: () => `${location.origin}${location.pathname}${location.hash}`,
+  list: () =>
+    currentEntries()
+      .map((entry) => `"${entry.label}"`)
+      .join(", "),
+  array: () =>
+    `[${currentEntries()
+      .map((entry) => JSON.stringify(entry.label))
+      .join(", ")}]`,
+};
 
-els.copyLinkBtn.addEventListener("click", () => {
-  const url = `${location.origin}${location.pathname}${location.hash}`;
-  copyWithFeedback(els.copyLinkBtn, url);
-});
+els.copyAllBtn.addEventListener("click", () => copyWithFeedback(els.copyAllBtn, copyBuilders.all()));
+els.copyLinkBtn.addEventListener("click", () => copyWithFeedback(els.copyLinkBtn, copyBuilders.link()));
+els.copyListBtn.addEventListener("click", () => copyWithFeedback(els.copyListBtn, copyBuilders.list()));
+els.copyArrayBtn.addEventListener("click", () => copyWithFeedback(els.copyArrayBtn, copyBuilders.array()));
 
-els.copyListBtn.addEventListener("click", () => {
-  const text = currentEntries()
-    .map((entry) => `"${entry.label}"`)
-    .join(", ");
-  copyWithFeedback(els.copyListBtn, text);
-});
+const TOOLTIP_PREVIEW_CHARS = 260;
+function preview(text) {
+  return text.length > TOOLTIP_PREVIEW_CHARS ? `${text.slice(0, TOOLTIP_PREVIEW_CHARS).trimEnd()}…` : text;
+}
 
-els.copyArrayBtn.addEventListener("click", () => {
-  const text = `[${currentEntries()
-    .map((entry) => JSON.stringify(entry.label))
-    .join(", ")}]`;
-  copyWithFeedback(els.copyArrayBtn, text);
-});
+// Called after anything that changes the list, its order, or the order view
+// (renderCards, and drag-end, which reorders the DOM without re-rendering).
+function updateTooltips() {
+  const count = enteredOrder.length;
+  const hasList = count > 0;
+  const refs = `${count} reference${count === 1 ? "" : "s"}`;
+  const order = "in the order shown";
+
+  refreshBoxState();
+  els.orderEnteredBtn.title = "Show the list in your own order — the same order as the box";
+  els.orderBibleBtn.title = "Show the list sorted Genesis to Revelation. Your own order is kept for when you switch back";
+
+  if (!hasList) return;
+  els.copyAllBtn.title = `Copies ${refs} with their verse text, ${order}:\n\n${preview(copyBuilders.all())}`;
+  els.copyListBtn.title = `Copies ${refs} as a quoted, comma-separated list, ${order}:\n\n${preview(copyBuilders.list())}`;
+  els.copyArrayBtn.title = `Copies ${refs} as a JSON string array, ${order}:\n\n${preview(copyBuilders.array())}`;
+  els.copyLinkBtn.title = `Copies a link that reopens these ${refs} ${order}:\n\n${preview(copyBuilders.link())}`;
+}
 
 // --- Drag-to-reorder (As Entered mode only) ---------------------------
 // Native Pointer Events, no library. Uses a lightweight FLIP-style
@@ -440,9 +633,30 @@ els.copyArrayBtn.addEventListener("click", () => {
       .filter(Boolean);
     dragEl = null;
     persist();
+    mirrorBox();
+    updateTooltips();
   }
 
   els.cards.addEventListener("pointerdown", onPointerDown);
+})();
+
+// --- About dialog -------------------------------------------------------
+// Native <dialog>: showModal() gives Escape-to-close, focus trapping and
+// the backdrop for free. Backdrop clicks are reported with the dialog as
+// their target, the same as clicks on the dialog's own padding, so tell
+// them apart by position.
+(function attachAbout() {
+  const dialog = document.getElementById("vl-about");
+  document.querySelectorAll("[data-about-open]").forEach((opener) => {
+    opener.addEventListener("click", () => dialog.showModal());
+  });
+  document.getElementById("vl-about-close").addEventListener("click", () => dialog.close());
+  dialog.addEventListener("click", (e) => {
+    if (e.target !== dialog) return;
+    const r = dialog.getBoundingClientRect();
+    const inside = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+    if (!inside) dialog.close();
+  });
 })();
 
 // --- Restore from the URL hash (shared by initial load and popstate) ---
@@ -458,7 +672,7 @@ async function tryLoadFromHash() {
   // pushHistory stays false: we're syncing state to a URL that's already
   // there (on load) or that the browser just navigated to (on popstate),
   // not creating a new back/forward step.
-  await loadFromText(refs, params.get("title") || undefined, { pushHistory: false });
+  await loadFromText(refs, { title: params.get("title") || undefined });
   return true;
 }
 
@@ -470,7 +684,7 @@ async function init() {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
     if (saved && Array.isArray(saved.refs) && saved.refs.length) {
       orderMode = saved.orderMode === "bible" ? "bible" : "entered";
-      await loadFromText(saved.refs.join("\n"), saved.title || undefined, { pushHistory: false });
+      await loadFromText(saved.refs.join("\n"), { title: saved.title || undefined });
     }
   } catch (_) {
     /* ignore malformed storage */

@@ -61,6 +61,113 @@ a {
   gap: 0.5em;
 }
 
+.vl-header__title-btn {
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.vl-header__title-btn:hover {
+  color: var(--gold-accent);
+}
+
+.vl-header__title-btn:focus-visible,
+.vl-footer__link:focus-visible,
+.vl-about__close:focus-visible {
+  outline: 2px solid var(--gold-accent);
+  outline-offset: 2px;
+}
+
+.vl-footer__link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text-tertiary);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* About dialog */
+.vl-about {
+  width: min(560px, calc(100% - 2rem));
+  max-height: calc(100% - 2rem);
+  color-scheme: dark;
+  padding: 1.2rem 1.4rem 1rem;
+  background: var(--bg-header);
+  color: var(--text-main);
+  border: 1px solid var(--bg-card-border);
+  border-radius: 10px;
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.vl-about::backdrop {
+  background: #000a;
+}
+
+.vl-about__title {
+  margin: 0 2rem 0.6rem 0;
+  font-size: 1.2rem;
+  color: var(--gold-accent);
+}
+
+.vl-about h3 {
+  margin: 1rem 0 0.25rem;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.vl-about p,
+.vl-about ul {
+  margin: 0;
+}
+
+.vl-about ul {
+  padding-left: 1.1rem;
+}
+
+.vl-about li + li {
+  margin-top: 0.3rem;
+}
+
+.vl-about a {
+  color: var(--verse-number);
+}
+
+.vl-about__close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-tertiary);
+  font-family: inherit;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.vl-about__close:hover {
+  background: #2a2f34;
+  color: var(--text-main);
+}
+
+.vl-about p.vl-about__year {
+  margin-top: 1.1rem;
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+  text-align: center;
+}
+
 .vl-header__brand-link {
   display: inline-flex;
   align-items: center;
@@ -220,10 +327,56 @@ a {
   color: var(--text-main);
 }
 
-.vl-errors {
-  margin: 0.8rem 0 0;
-  padding: 0.6rem 0.9rem;
+.vl-sync {
+  margin: 0.6rem 0 0;
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+}
+
+.vl-sync.is-dirty {
+  color: var(--gold-accent);
+}
+
+.vl-input:has(.vl-sync.is-dirty) .vl-input__box {
+  border-color: var(--gold-accent-border);
+}
+
+.vl-errors__list {
+  margin: 0;
+  padding: 0;
   list-style: none;
+}
+
+.vl-errors__close {
+  position: absolute;
+  top: 0.2rem;
+  right: 0.2rem;
+  width: 1.9rem;
+  height: 1.9rem;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--error);
+  font-family: inherit;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.vl-errors__close:hover {
+  background: #3a2626;
+}
+
+.vl-errors__close:focus-visible {
+  outline: 2px solid var(--gold-accent);
+  outline-offset: 2px;
+}
+
+.vl-errors {
+  position: relative;
+  margin: 0.8rem 0 0;
+  padding: 0.6rem 2.4rem 0.6rem 0.9rem;
   background: #2a1f1f;
   border: 1px solid var(--error);
   border-radius: 6px;
@@ -340,6 +493,50 @@ a {
   font-size: 1rem;
   font-weight: 600;
   color: var(--gold-accent);
+}
+
+.vl-card__remove {
+  margin-left: auto;
+  flex: none;
+  width: 1.9rem;
+  height: 1.9rem;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-tertiary);
+  font-family: inherit;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.vl-card__remove:hover {
+  background: #2a2f34;
+  color: var(--error);
+}
+
+.vl-card__remove:focus-visible {
+  outline: 2px solid var(--gold-accent);
+  outline-offset: 2px;
+}
+
+.vl-card.is-new {
+  animation: vl-flash 0.9s ease-out;
+}
+
+.vl-undo:not([hidden]) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.9rem;
+  margin: 0.8rem 0 0;
+  padding: 0.4rem 0.5rem 0.4rem 0.9rem;
+  background: var(--bg-header);
+  border: 1px solid var(--bg-card-border);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
 }
 
 .vl-card__title-link {
