@@ -35,6 +35,7 @@ const els = {
   dragHint: document.getElementById("vl-drag-hint"),
   cards: document.getElementById("vl-cards"),
   empty: document.getElementById("vl-empty"),
+  reopenBtn: document.getElementById("vl-reopen-btn"),
 };
 
 const DEFAULT_DOCUMENT_TITLE = document.title;
@@ -81,11 +82,16 @@ function mirrorBox() {
 function refreshBoxState() {
   const hasList = enteredOrder.length > 0;
   const dirty = isBoxDirty();
+  const boxEmpty = !els.inputBox.value.trim();
 
+  // Lit only when pressing it would do something: there's text to look up
+  // (Show Verses) or the box differs from the cards (Update List).
   els.loadBtn.textContent = hasList ? "Update List" : "Show Verses";
-  els.loadBtn.disabled = isLoading || (hasList && !dirty);
+  els.loadBtn.disabled = isLoading || (hasList ? !dirty : boxEmpty);
   els.loadBtn.title = !hasList
-    ? "Look up the references in the box and show their verses"
+    ? boxEmpty
+      ? "Nothing to show yet — type or paste references in the box first."
+      : "Look up the references in the box and show their verses"
     : dirty
       ? "Rebuilds the cards from the box: new lines are added, deleted lines are removed, and the order follows the box"
       : "Nothing to update — the box and the cards already match. Edit the box first.";
@@ -277,7 +283,25 @@ function setListVisible(visible) {
   els.listSection.hidden = !visible;
   els.empty.hidden = visible;
   els.clearBtn.hidden = !visible;
+  updateReopenBtn();
   updateTooltips();
+}
+
+// The last list saved by any tab in this browser, or null. A bare URL starts
+// empty (so a new tab is a clean slate for a second list) and offers this
+// back via "Reopen last list" rather than loading it automatically.
+function readStoredList() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+    if (saved && Array.isArray(saved.refs) && saved.refs.length) return saved;
+  } catch (_) {
+    /* storage unavailable or malformed — nothing to reopen */
+  }
+  return null;
+}
+
+function updateReopenBtn() {
+  els.reopenBtn.hidden = !els.listSection.hidden || !readStoredList();
 }
 
 // --- Remove a card (with Undo) ------------------------------------------
@@ -299,6 +323,7 @@ function clearStoredList() {
   } catch (_) {
     /* storage unavailable */
   }
+  updateReopenBtn();
 }
 
 function removeEntry(id) {
@@ -486,6 +511,22 @@ function clearAll() {
 
 els.clearBtn.addEventListener("click", clearAll);
 
+// The title is a real link to the bare URL, so middle-click / Ctrl-click
+// opens a fresh, empty VerseList in a new tab. A plain click is "home":
+// put this tab's list away and start a new one. Unlike Clear All there's
+// no confirm and the saved list is kept, because nothing is lost — Back
+// restores the list and Reopen Last List offers it again.
+document.getElementById("vl-home-link").addEventListener("click", (e) => {
+  if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  e.preventDefault();
+  if (isLoading) return;
+  if (enteredOrder.length) {
+    resetToEmpty();
+    history.pushState(null, "", location.pathname + location.search);
+  }
+  els.inputBox.focus();
+});
+
 els.orderEnteredBtn.addEventListener("click", () => {
   if (orderMode === "entered") return;
   orderMode = "entered";
@@ -661,8 +702,7 @@ function updateTooltips() {
 
 // --- Restore from the URL hash (shared by initial load and popstate) ---
 // Returns true if the hash had a list to restore, false if there was
-// nothing there (caller decides what "nothing" means — fall back to
-// localStorage on load, or show the empty state on popstate).
+// nothing there (caller shows the empty state).
 async function tryLoadFromHash() {
   if (location.hash.length <= 1) return false;
   const params = new URLSearchParams(location.hash.slice(1));
@@ -676,20 +716,31 @@ async function tryLoadFromHash() {
   return true;
 }
 
-// --- Restore on load: URL hash takes priority over localStorage --------
+// --- Restore on load: only from the URL hash ----------------------------
+// With no hash the page starts empty; the last saved list is one click away
+// via "Reopen last list" (see readStoredList).
 async function init() {
   if (await tryLoadFromHash()) return;
-
-  try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
-    if (saved && Array.isArray(saved.refs) && saved.refs.length) {
-      orderMode = saved.orderMode === "bible" ? "bible" : "entered";
-      await loadFromText(saved.refs.join("\n"), { title: saved.title || undefined });
-    }
-  } catch (_) {
-    /* ignore malformed storage */
-  }
+  updateReopenBtn();
+  refreshBoxState();
 }
+
+els.reopenBtn.addEventListener("click", () => {
+  if (isLoading) return;
+  const saved = readStoredList();
+  if (!saved) {
+    updateReopenBtn();
+    return;
+  }
+  orderMode = saved.orderMode === "bible" ? "bible" : "entered";
+  // Pushed so Back returns to the empty page.
+  loadFromText(saved.refs.join("\n"), { title: saved.title || undefined, pushHistory: true });
+});
+
+// Another tab saved or cleared its list while this one sits empty.
+window.addEventListener("storage", (e) => {
+  if (e.key === STORAGE_KEY || e.key === null) updateReopenBtn();
+});
 
 // Show Verses and Clear push a history entry (see persist()/clearBtn above),
 // so Back/Forward now actually have somewhere to go — restore whichever

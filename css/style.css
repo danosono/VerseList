@@ -61,21 +61,18 @@ a {
   gap: 0.5em;
 }
 
-.vl-header__title-btn {
-  padding: 0;
-  border: none;
-  background: none;
+.vl-header__title-link {
   color: inherit;
-  font: inherit;
-  cursor: pointer;
+  text-decoration: none;
   border-radius: 4px;
 }
 
-.vl-header__title-btn:hover {
+.vl-header__title-link:hover {
   color: var(--gold-accent);
 }
 
-.vl-header__title-btn:focus-visible,
+.vl-header__title-link:focus-visible,
+.vl-header__about:focus-visible,
 .vl-footer__link:focus-visible,
 .vl-about__close:focus-visible {
   outline: 2px solid var(--gold-accent);
@@ -185,12 +182,27 @@ a {
   font-size: 0.85rem;
 }
 
-.vl-header__links a {
+.vl-header__links {
+  align-items: center;
+}
+
+.vl-header__about {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.vl-header__links a,
+.vl-header__about {
   color: var(--text-tertiary);
   text-decoration: none;
 }
 
-.vl-header__links a:hover {
+.vl-header__links a:hover,
+.vl-header__about:hover {
   color: var(--text-secondary);
   text-decoration: underline;
 }
@@ -256,7 +268,7 @@ a {
   color: #fff;
 }
 
-.vl-btn--primary:hover {
+.vl-btn--primary:hover:not(:disabled) {
   background: var(--accent-vivid);
 }
 

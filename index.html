@@ -20,15 +20,13 @@
     <div class="vl-app">
       <header class="vl-header">
         <h1 class="vl-header__title">
-          <button
-            class="vl-header__title-btn"
-            type="button"
-            data-about-open
-            title="About VerseList"
-            aria-haspopup="dialog"
+          <a
+            class="vl-header__title-link"
+            id="vl-home-link"
+            href="./"
+            title="Start a new list — middle-click to open VerseList in a new tab"
+            >VerseList</a
           >
-            VerseList
-          </button>
           <a
             href="https://gospelgo.org"
             target="_blank"
@@ -42,6 +40,7 @@
         <div class="vl-header__links">
           <a href="https://bible-peruser.gospelgo.org" target="_blank" rel="noopener noreferrer">Bible Peruser</a>
           <a href="https://bible-explorer.gospelgo.org" target="_blank" rel="noopener noreferrer">Bible Explorer</a>
+          <button class="vl-header__about" type="button" data-about-open aria-haspopup="dialog">About</button>
         </div>
       </header>
 
@@ -75,6 +74,15 @@
               hidden
             >
               Clear All
+            </button>
+            <button
+              id="vl-reopen-btn"
+              class="vl-btn vl-btn--ghost"
+              type="button"
+              title="Bring back the list you last had open in this browser"
+              hidden
+            >
+              Reopen Last List
             </button>
             <span class="vl-loading" id="vl-loading" role="status" aria-live="polite" hidden
               ><span class="vl-spinner" aria-hidden="true"></span>Loading verses…</span
