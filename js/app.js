@@ -698,6 +698,37 @@ function updateTooltips() {
     const inside = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
     if (!inside) dialog.close();
   });
+
+  // Install as an app (window.vlInstall, js/install.js). The button shows
+  // only while the browser says installing is possible right now — never a
+  // dead button.
+  const install = window.vlInstall;
+  if (!install) return;
+  const installBtn = document.getElementById("vl-install-btn");
+  const syncInstallBtn = () => {
+    installBtn.hidden = !install.canPrompt();
+  };
+  installBtn.addEventListener("click", () => install.prompt());
+  document.addEventListener("vl-install-change", syncInstallBtn);
+  syncInstallBtn();
+
+  // Browsers that can't prompt get one line instead. Not shown in Chromium:
+  // there a missing button almost always means it's already installed.
+  // iOS (every browser there is WebKit; iPadOS reports itself as a Mac) has
+  // no install prompt at all, only the manual Share-sheet route.
+  if (install.isStandalone()) return;
+  const ua = navigator.userAgent;
+  const isIOS = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  const isChromium = !!navigator.userAgentData || /Chrome\//.test(ua);
+  const note = document.getElementById("vl-install-note");
+  if (isIOS) {
+    note.textContent = "To install VerseList as an app: Share → Add to Home Screen.";
+  } else if (!isChromium) {
+    note.textContent = "VerseList can be installed as an app from Chrome or Edge.";
+  } else {
+    return;
+  }
+  note.hidden = false;
 })();
 
 // --- Restore from the URL hash (shared by initial load and popstate) ---

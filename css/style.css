@@ -158,6 +158,18 @@ a {
   color: var(--text-main);
 }
 
+/* "Install as an app" button and/or the where-to-install note; both are
+   hidden unless js/app.js finds a reason to show one. */
+.vl-about__install {
+  margin-top: 1.1rem;
+  text-align: center;
+}
+
+.vl-about p.vl-about__install-note {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
 .vl-about p.vl-about__year {
   margin-top: 1.1rem;
   font-size: 0.8rem;

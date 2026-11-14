@@ -13,6 +13,13 @@
     />
     <link rel="icon" type="image/png" href="images/favicon-verselist-v1.png" />
     <link rel="shortcut icon" type="image/png" href="images/favicon-verselist-v1.png" />
+    <link rel="apple-touch-icon" href="images/favicon-verselist-v1.png" />
+    <link rel="manifest" href="site.webmanifest" />
+    <meta name="apple-mobile-web-app-title" content="VerseList" />
+    <meta name="theme-color" content="#181a1b" />
+    <!-- Classic script, deliberately not deferred: it must be listening
+         before beforeinstallprompt fires (see js/install.js). -->
+    <script src="js/install.js"></script>
     <link rel="stylesheet" href="css/normalize.css" />
     <link rel="stylesheet" href="css/style.css" />
   </head>
@@ -220,6 +227,22 @@
         Verses are from the
         <a href="https://bereanbible.com/" target="_blank" rel="noopener">Berean Standard Bible</a>.
       </p>
+
+      <!-- Both start hidden; js/app.js (attachAbout) shows the button only
+           while the browser can actually install, and the note only where
+           it can't. -->
+      <div class="vl-about__install">
+        <button
+          class="vl-btn vl-btn--ghost"
+          id="vl-install-btn"
+          type="button"
+          title="Opens VerseList in its own window, with an icon you can pin to your taskbar or home screen"
+          hidden
+        >
+          Install as an app
+        </button>
+        <p class="vl-about__install-note" id="vl-install-note" hidden></p>
+      </div>
 
       <p class="vl-about__year">VerseList &middot; 2026</p>
     </dialog>

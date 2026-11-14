@@ -1,0 +1,20 @@
+{
+  "name": "VerseList",
+  "short_name": "VerseList",
+  "description": "Paste a list of Bible verse references and read them together — in the order you gave, in Bible order, or drag to arrange your own.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#181a1b",
+  "theme_color": "#181a1b",
+  "lang": "en",
+  "categories": ["books", "education", "reference"],
+  "icons": [
+    {
+      "src": "images/favicon-verselist-v1.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
